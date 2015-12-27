@@ -6,8 +6,6 @@
             [myapp.func :as func :refer [up-state! app-state]]
 
             [myapp.fn.about :refer [get-avatar]]
-            ;[myapp.fn.blog :refer [get-blogs]] ;; must be remove, call pages with callback
-            [myapp.fn.tag :refer [get-tags update-tag-count]]
             [myapp.fn.star :refer [get-stars]]
             ))
 
@@ -18,10 +16,7 @@
 (defn get-data []
   (func/get-items "auth"
              (fn [res]
-               ;(get-stars "top")
-               ;(get-tags "stars")
                (get-avatar)
-               ;(get-blogs)
                )))
 
 

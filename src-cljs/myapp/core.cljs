@@ -14,6 +14,8 @@
             [myapp.pages.common :as common :refer [footer]]
             [myapp.routes.core :as route :refer [page]]
             [myapp.func :as func]
+
+            [myapp.fn.star :refer [get-stars]]
             )
   (:import goog.History))
 
@@ -29,6 +31,10 @@
     [:div.extra.content
      [:a [:i.user.icon ] "22 Friends"]]]
    [:div "Helo"]]
+  )
+
+(defn syn-star []
+  (GET (func/token-url "synstar"){:handler #(get-stars)})
   )
 
 (defn header []
@@ -48,7 +54,7 @@
           [:input {:type "text" :placeholder "Seach..."}]
           [:i.search.link.icon]]]
         (if-let [github-name (:githubLogin (session/get :user))]
-          [:a.ui.item {:on-click common/test-t} github-name]
+          [:a.ui.item {:on-click syn-star} github-name]
           [:a.ui.item {:on-click func/github-authorize } "Login"]
           )
           [:a.ui.item {:on-click #(print (:name (first (session/get :stars)))) } "test"]

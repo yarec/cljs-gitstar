@@ -142,10 +142,16 @@
 (defn github-authorize []
   (let [uuid-str (uuid/uuid-string (uuid/make-random-squuid))
         path (url "/auth/github/authorize")
-        location (js/encodeURIComponent (str (.-location js/window) "?token=" uuid-str))
+        cur-loc (.-location js/window)
+        cur-path (.-pathname (.-location js/window))
+        cur-hash (.-hash (.-location js/window))
+        hash (if (= "" cur-hash) "#/" "")
+        cur-url (str cur-loc hash "?token=" uuid-str)
+        location (js/encodeURIComponent cur-url)
         location (js/encodeURIComponent location)
         new-location (str path "?_r=" location "&uuid=" uuid-str)]
-    ;(println new-location)
+    ;(.log js/console cur-loc)
+    ;(println cur-url)
     (set! (.-location js/window) new-location)
     ;(GET path )
     )
