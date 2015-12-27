@@ -32,9 +32,13 @@
   [(:page (page-map (session/get :page)))])
 
 (defn do-page-fn [name]
-  (let [page-fn (:fn (page-map (keyword name)))]
+  (let [page-fn (:fn (page-map (keyword name)))
+        is-star (= "home" name)]
     (if page-fn
-      (page-fn)
+      (if is-star
+        (page-fn "top")
+        (page-fn)
+        )
       (print page-fn)
       )
     )
