@@ -145,7 +145,7 @@
      (for [item seq] ^{:key item}
           [:button.ui.blue.button
            {:class (if (= page item) "active")
-            :on-click #(callback item)}
+            :on-click #(callback {:page item})}
            item]
           )
      )

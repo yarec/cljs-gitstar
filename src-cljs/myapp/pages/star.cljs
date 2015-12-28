@@ -71,7 +71,11 @@
          (:name item)
          [:div.ui.label (:count item)]])
    )
-   (for [item items] ^{:key item}
+   (for [item 
+         (into [{:name "all" :count (session/get :stars-all-count) :key "all"}
+                {:name "other" :count (session/get :stars--count) :key "other"}]
+           items)
+         ] ^{:key item}
     [:div.ui.button.basic.item
      {:on-click #(get-stars (:name item))
       :style {:margin "2px"
