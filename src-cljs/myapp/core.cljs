@@ -45,9 +45,9 @@
       {:style {:border-bottom "1px solid rgba(34, 36, 38, 0.05)" :margin-top "0px" }}
       [:div.ui.container
        [:a.item {:class (if (= :home page) "active")
-                 :href "/#/"} "Home"]
+                 :href (str (.-pathname (.-location js/window)) "#/") } "Home"]
        [:a.item {:class (if (= :about page) "active")
-                 :href "/#/about"} "About"]
+                 :href (str (.-pathname (.-location js/window)) "#/about")} "About"]
        [:div.right.menu
         [:div.item
          [:div.ui.icon.input
