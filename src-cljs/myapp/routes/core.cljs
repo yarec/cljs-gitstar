@@ -72,7 +72,9 @@
 (defn def-routes [names]
   (doseq [name names]
     (secretary/defroute (str "/" (if (= "home" name ) "" name)) []
-      (get-tags (str name "s"))
+      (let [name (if (= "home" name) "star" name)]
+        (get-tags (str name "s"))
+        )
       (do-page-fn name)
 
       (session/put! :page (keyword name))
