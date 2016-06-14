@@ -3,11 +3,13 @@
             [ajax.core :refer [GET POST PUT]]
             [myapp.func :as func :refer [up-state! app-state]]
             [myapp.fn.star :refer [get-stars]]
+            [myapp.fn.blog :refer [get-blogs]]
+            [myapp.fn.coll :refer [get-colls]]
             ))
 
 (defn get-tags [& [type]]
   (let [type (or type "blogs")]
-    (func/get-items "tags"
+    (func/get-rest-items "tags"
                     (fn [res]
                       (js/setTimeout func/fix-sticky 1000)
                       (let [tags (session/get :tags)]
@@ -15,8 +17,8 @@
                         (doseq [tag tags]
                           (let [name (:name tag)
                                 div (str "<div class=\"item\"
-                        data-value=\"" name "\"
-                        data-text=\"" name "\"> "
+                                         data-value=\"" name "\"
+                                         data-text=\"" name "\"> "
                                          name
                                          "</div>")]
                             (.append (js/$ ".tags-form > .menu") div)))
@@ -29,9 +31,9 @@
     (if (= tag "")
       (println "empty tag")
       (do
-        (print (str "type: " tag-type))
+        ;;(print (str "type: " tag-type))
         (.val (js/$ "#add-tag-value") "")
-        (POST (func/token-url "tags")
+        (POST (func/token-rest-url "tags")
             {:params {:name tag :count 0 :type tag-type}
              :format :json
              :handler #(get-tags tag-type)})
@@ -42,14 +44,18 @@
   (let [tags-all (session/get :tags)
         tag (some #(if (= (:name %) tag-name) %) tags-all)
         tag-id (:id tag)]
-    (PUT (func/token-url (str "tags/" tag-id))
+    (PUT (func/token-rest-url (str "tags/" tag-id))
         {:params {fn-key "count"}
          :format :json})))
 
 (defn save-item-tags [type id]
   (let [tags (.val (js/$ "#tags-value"))
         tags-trim (clojure.string/replace tags #"^," "")
-        vec-tags (clojure.string/split tags-trim ",")]
+        vec-tags (clojure.string/split tags-trim ",")
+        get-fn (cond (= type "stars") get-stars
+                     (= type "blogs") get-blogs
+                     (= type "colls") get-colls
+                     )]
     (let [tag-add (:tags-add @app-state)
           tag-rm (:tags-rm @app-state)
           tags-all (session/get :tags)]
@@ -58,10 +64,10 @@
       (js/setTimeout #(get-tags type) 500))
 
     (.modal (js/$ ".ui.edit-tags") "hide")
-    (PUT (func/url (str "/" type "/" id))
-        {:params (func/token-param {:tags vec-tags})
+    (PUT (func/token-rest-url (str type "/" id))
+        {:params {:tags vec-tags}
          :format :json
-         :handler #(get-stars)
+         :handler #(get-fn)
          })))
 
 
@@ -79,7 +85,7 @@
              (not (some #{value} tag-rm)))
       (up-state! :tags-rm (conj tag-rm value)))))
 
-(defn fn-edit-tag [id tags type star]
+(defn fn-edit-tag [id tags type item]
   ;;(r/unmount-component-at-node (.getElementById js/document "pop"))
   ;;(set! (. (.getElementById js/document "pop") -innerHTML) "")
   #_(r/render [edit-tags id (clojure.string/join "," tags)]
@@ -100,7 +106,7 @@
 
   (.click (.unbind (js/$ "#save-tags") "click") #(save-item-tags type id))
   (.click (.unbind (js/$ "#save-tags-quick") "click") #(save-item-tags type id))
-  (.html (js/$ "#desc-in-tag") (:full_name star))
+  (.html (js/$ "#desc-in-tag") (:full_name item))
   (.modal (js/$ ".ui.edit-tags") "show")
   (js/setTimeout #(.focus (js/$ ".tags-form > .search")) 650)
   )

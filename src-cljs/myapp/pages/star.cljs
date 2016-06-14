@@ -71,6 +71,8 @@
          (:name item)
          [:div.ui.label (:count item)]])
    )
+
+
    (for [item 
          (into [{:name "all" :count (session/get :stars-all-count) :key "all"}
                 {:name "other" :count (session/get :stars--count) :key "other"}]

@@ -3,60 +3,135 @@
             [reagent.session :as session]
             [ajax.core :refer [GET POST PUT]]
             [clojure.walk :refer [keywordize-keys]]
-            [myapp.func :as func :refer [up-state! app-state]]
+            [myapp.func :as func :refer [up-state! app-state 
+                                         get-hash-path admin?
+                                         cur-page set-path resp-data]]
 
             [myapp.fn.about :refer [get-avatar]]
             [myapp.fn.star :refer [get-stars]]
+            [myapp.fn.blog :refer [save-blogs]]
+            [myapp.fn.tag :refer [add-tag get-tags]]
             ))
 
-(defn test-t []
-  (GET (func/token-url "t"){:handler #(get-stars)})
+(defn get-stars-by-page [resp]
+  (let [page (:syncstar-page @app-state)
+        pages (:syncstar-totalpage @app-state)
+        total (:syncstar-total @app-state)
+        percent (/ (* page 100 100) total)
+        percent (if (> percent 100) 100 percent)
+        ]
+    (if (<= page pages)
+      (do
+        (GET (func/token-url "syncstar"){:handler get-stars-by-page :params {:page page}})
+        (up-state! :syncstar-page (+ page 1))
+        (.progress (js/$ "#load-progress") #js {:percent percent})
+        ))))
+
+(defn sync-star [resp]
+  (let [data (resp-data resp)
+        total (:total (:data data))
+        page-size 100
+        pages (.ceil js/Math (/ total page-size))
+        page-list (map inc (range pages))
+        ]
+    (up-state! :syncstar-total total)
+    (up-state! :syncstar-totalpage pages)
+    (up-state! :syncstar-page 1)
+    (get-stars-by-page nil)
+    )
+  )
+
+(defn sync-stars []
+  (GET (func/token-url "totalstar-count"){:handler sync-star})
   )
 
 (defn get-data []
-  (func/get-items "auth"
+  (func/get-items "auth/userinfo"
              (fn [res]
                (get-avatar)
                )))
 
+(defn header-list []
+  (let [page (session/get :page )
+        href-list [{:path "/"         :name "Home"     :page :home}
+                   {:path "/blog"     :name "Blog"     :page :blog}
+                   {:path "/coll"     :name "Coll"     :page :coll}
+                   {:path "/star"     :name "GitStar"  :page :star}
+                   {:path "/task"     :name "Task"     :page :task}
+                   {:path "/boutique" :name "Boutique" :page :boutique}
+                   {:path "/enroll/races"   :name "Race"   :page :enroll :role "user"}
+                   {:path "/activity" :name "Activity" :page :activity :role "admin"}
+                   {:path "/about"    :name "About"    :page :about}
+                   ]
+        a-item (fn [item]
+                 (let [role (or (:role item) "user")]
+                   (if (or (not (= role "admin"))
+                           (admin?))
+                     ^{:key item}
+                     [:a.item.clickable {:class (if (= (:page item) page) "active")
+                               ;;:href (get-hash-path (:path item))
+                               :on-click #(set-path (:path item))
+                               }
+                      (:name item)]
+                     )))]
+
+    (doall (map a-item href-list))
+    ))
 
 (defn header []
   (let [page (session/get :page)]
-    [:div.ui.header.sticky.fixed.top {:style {:background "#f9f9f7"
+    [:div.ui.header.sticky.fixed.top {:id "header-sticky"
+                                      :style {:background "#f9f9f7"
                                               :left "0px"
-                                              :width "1913px !important"
+                                              ;:width "1913px !important"
                                               :height "46px !important"
                                               :margin-top "0px"
                                               }}
-     [:div.ui.orange.bottom.attached.progress {:id "load-progress" :style {:height "0.1rem"}} [:div.bar]]
+     [:div.ui.orange.bottom.attached.progress {:id "load-progress" :style {:height "0.16rem"}} [:div.bar]]
      [:div.ui.menu.secondary.pointing
       {:style {:border-bottom "1px solid rgba(34, 36, 38, 0.05)" :margin-top "0px" }}
       [:div.ui.container
-       [:a.item {:class (if (= :home page) "active")
-                 :href "/#/"} "Home"]
-       [:a.item {:class (if (= :blog page) "active")
-                 :href "/#/blog"} "Blog"]
-       [:a.item {:class (if (= :star page) "active")
-                 :href "/#/star"} "GitStars"]
-       [:a.item {:class (if (= :task page) "active")
-                 :href "/#/task"} "Task"]
-       [:a.item {:class (if (= :boutique page) "active")
-                 :href "/#/boutique"} "Boutique"]
-       (if (= "https://api.softidy.com" js/remote_domain )
-         [:a.item {:class (if (= :enroll page) "active")
-                   :href "/#/enroll"} "Enroll"])
-       [:a.item {:class (if (= :about page) "active")
-                 :href "/#/about"} "About"]
+       (header-list)
        [:div.right.menu
         [:div.item
          [:div.ui.icon.input
           [:input {:type "text" :placeholder "Seach..."}]
           [:i.search.link.icon]]]
         (if-let [github-name (:githubLogin (session/get :user))]
-          [:a.ui.item {:on-click test-t} github-name]
+          [:a.ui.item github-name]
           [:a.ui.item {:on-click func/github-authorize } "Login"]
           )
-        [:a.ui.item {:on-click func/do-test} "Test"]
+
+        [:div.ui.menu.secondary
+
+        [:div.ui.dropdown.icon.item
+         [:i.settings.icon]
+         [:div.menu
+          [:a.ui.item {:on-click #(set-path "/user/login")} "Login"]
+          [:a.ui.item {:on-click #(sync-stars)} "Sync Stars"]
+          [:div.item
+           [:i.dropdown.icon]
+           [:span.text "New"]
+           [:div.menu
+            [:div.item
+             [:div.item {:on-click #(set-path "/link/new")} "Link"]
+             [:div.item "Document"]
+             [:div.item "Image"]
+             ]
+            ]
+           ]
+          [:div.item "Open..."]
+          [:div.item "Save..."]
+          [:div.divider]
+          [:div.header "Export csv file"]
+          [:div.item "Share..."]
+          [:div.item {:on-click #(set-path "/enroll/history")} "my reghistory" ]
+          [:div.item {:on-click #(set-path "/enroll/list")} "my enroll" ]
+          [:a.ui.item {:on-click func/do-test} "Test"]
+          ]
+         ]
+         ]
+
         ]
        ]
       ]
@@ -97,6 +172,8 @@
    ]
   )
 
+(defn blank-page [])
+
 (defn about-page []
   [:div.ui.container
    [:div.ui.card.olive {:style {:margin-top "4em"}}
@@ -114,7 +191,7 @@
 (defn pages-seq [page size count]
   (let [page (int page)
         page-cnt (Math/ceil (/ count size))
-        btn-num 8
+        btn-num 6
         half-btn-num (/ btn-num 2)
         seq1 (let [begin (- page half-btn-num)
                    end (+ half-btn-num page)
@@ -126,28 +203,126 @@
         seq (if (> page (+ 1 half-btn-num))
               seq1
               (range 1 (+ 2 btn-num)))
-        seq (conj (vec seq) page-cnt)]
+        ;;seq (conj (vec seq) page-cnt)
+        ]
+    ;;(print seq page size count page-cnt)
     seq
     )
   )
 
 ;;; (pages-seq 2 3 25) 
 
+(defn page-n [n res-name]
+  (let [page (cur-page res-name)
+        page (int page)
+        count (session/get (keyword (str res-name "-count")))
+        count (int count)
+        n (or n 0)
+        ret-page (+ page n)
+        ret-page (if (< ret-page 1) 1 ret-page)
+        ret-page (if (> ret-page count) count ret-page)
+        ]
+    ret-page
+    ))
+
+(defn prev-page [res-name]
+  (page-n -1 res-name))
+
+(defn next-page [res-name]
+  (page-n 1 res-name))
+
+(defn first-page? [res-name]
+  (= (page-n 0 res-name) 1))
+
+(defn last-page? [res-name]
+  (let [count (session/get (keyword (str res-name "-count")))
+        count (int count)
+        size (session/get (keyword (str res-name "-size")))
+        size (int (or size 5))
+        page-cnt (Math/ceil (/ count size))
+        ]
+    (= (page-n 0 res-name) page-cnt)
+    ))
+
 (defn pages [res-name callback]
   [:div.ui.basic.buttons
-   (let [page (session/get (keyword (str res-name "-page")))
-         page (int page)
+   (if (not (first-page? res-name)) ^{:key "prev"}
+     [:button.ui.button {:on-click #(callback {:page (prev-page res-name)})} "prev"])
+   (let [page (page-n 0 res-name)
          count (session/get (keyword (str res-name "-count")))
          count (int count)
          size (session/get (keyword (str res-name "-size")))
-         size (int size)
+         size (int (or size 5))
          seq (pages-seq page size count)]
      (for [item seq] ^{:key item}
-          [:button.ui.blue.button
-           {:class (if (= page item) "active")
-            :on-click #(callback {:page item})}
-           item]
-          )
-     )
-   ]
+       [:button.ui.button
+        {:class (if (= page item) "active")
+         :on-click #(callback {:page item})} item]))
+   (if (not (last-page? res-name)) ^{:key "next"}
+     [:button.ui.button {:on-click #(callback {:page (next-page res-name)})} "next"])
+   ])
+
+
+(defn init-ui []
+  ;(print "init-ui")
+  (.accordion (js/$ ".ui.accordion"))
+  ;(.sticky (js/$ ".ui.sticky"))
+  ;(.sticky (js/$ ".ui.taglist.sticky") (js-obj "offset" 150))
+  (.modal (js/$ ".ui.modal"))
+  (.checkbox (js/$ ".checkbox"))
+
+  (.dropdown (js/$ ".dropdown"))
+  ;;(.sidebar (js/$ ".ui.labeled.icon.sidebar") "toggle")
+  #_(.dropdown (js/$ ".dropdown.tag-list")
+               (js-obj "keepOnScreen" true
+                       "onAdd" func/on-filter-add-tag 
+                       "onRemove" func/on-filter-rm-tag))
+  (func/adjust-footer)
+  ;;(.dropdown (js/$ ".dropdown.tag-list") "show")
+  ;;(.tab (js/$ ".menu .item"))
+  (.click (js/$ "#add-tag") add-tag)
+  ;;(.log js/console (.-location js/window))
+  ;;(print (.-href (.-location js/window)))
   )
+
+(defn initui []
+  (js/setTimeout #(init-ui)  200)
+  )
+
+(defn init-tinymce []
+  (.init js/tinymce
+         (js-obj "selector" "div.editable"
+                 "theme" "modern"
+                 "height" 700
+                 ;;"inline" true
+                 "plugins" #js ["advlist autolink lists link image charmap print preview hr anchor pagebreak"
+                                "searchreplace wordcount visualblocks visualchars code fullscreen"
+                                "insertdatetime media nonbreaking save autosave table contextmenu directionality"
+                                "emoticons template paste textcolor colorpicker textpattern imagetools
+                                 codemirror sh4tinymce"]
+                 "toolbar" #js ["insertfile undo redo | styleselect | bold italic |
+                                 alignleft aligncenter alignright alignjustify | save cancel 
+                                 code sh4tinymce"
+                                "bullist numlist outdent indent insert-row-after | table link image
+                                 | print preview media fullpage | forecolor backcolor emoticons fullscreen"]
+                 "codemirror" (js-obj
+                               "indentOnInit" true
+                               "path" "codemirror-4.8"
+                               "config" (js-obj "lineNumbers" true)
+                               )
+                 "save_enablewhendirty" true
+                 "save_onsavecallback" #(save-blogs)
+                 "setup" (fn [editor]
+                           (.addButton editor "cancel"
+                                       (js-obj "text" "Cancel"
+                                               "icon" false
+                                               "onclick" (fn []
+                                                           (println "cancel"))))
+                           (.addButton editor "insert-row-after"
+                                       (js-obj "text" "ARow"
+                                               "icon" false
+                                               "onclick" (fn []
+                                                           (.execCommand editor 'mceTableInsertRowAfter' false editor)
+                                                           )))
+                           )
+                 )))
