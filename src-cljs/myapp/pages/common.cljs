@@ -8,8 +8,6 @@
                                          cur-page set-path resp-data]]
 
             [myapp.fn.about :refer [get-avatar]]
-            [myapp.fn.star :refer [get-stars]]
-            [myapp.fn.blog :refer [save-blogs]]
             [myapp.fn.tag :refer [add-tag get-tags]]
             ))
 
@@ -99,7 +97,7 @@
           [:i.search.link.icon]]]
         (if-let [github-name (:githubLogin (session/get :user))]
           [:a.ui.item github-name]
-          [:a.ui.item {:on-click func/github-authorize } "Login"]
+          [:a.ui.item.clickable {:on-click func/github-authorize } "Login"]
           )
 
         [:div.ui.menu.secondary
@@ -203,7 +201,7 @@
         seq (if (> page (+ 1 half-btn-num))
               seq1
               (range 1 (+ 2 btn-num)))
-        ;;seq (conj (vec seq) page-cnt)
+        seq (conj (vec seq) page-cnt)
         ]
     ;;(print seq page size count page-cnt)
     seq
@@ -244,22 +242,45 @@
     (= (page-n 0 res-name) page-cnt)
     ))
 
+(defn set-page-size [res-name size]
+  (session/put! (keyword (str res-name "-size")) size)
+  )
+
+(defn size-list [res-name]
+  [:div.ui.icon.dropdown.button.basic
+   "Size"
+   ;;[:span.text "Size"]
+   [:i.icon.angle.down]
+   [:div.menu
+    [:div.item {:on-click #(set-page-size res-name 5)} "5"]
+    [:div.item {:on-click #(set-page-size res-name 10)} "10"]
+    [:div.item {:on-click #(set-page-size res-name 20)} "20"]
+    [:div.item {:on-click #(set-page-size res-name 30)} "30"]
+    [:div.item {:on-click #(set-page-size res-name 50)} "50"]
+    [:div.item {:on-click #(set-page-size res-name 100)} "100"]
+    ]
+   ]
+  )
+
 (defn pages [res-name callback]
-  [:div.ui.basic.buttons
-   (if (not (first-page? res-name)) ^{:key "prev"}
-     [:button.ui.button {:on-click #(callback {:page (prev-page res-name)})} "prev"])
-   (let [page (page-n 0 res-name)
-         count (session/get (keyword (str res-name "-count")))
-         count (int count)
-         size (session/get (keyword (str res-name "-size")))
-         size (int (or size 5))
-         seq (pages-seq page size count)]
-     (for [item seq] ^{:key item}
-       [:button.ui.button
-        {:class (if (= page item) "active")
-         :on-click #(callback {:page item})} item]))
-   (if (not (last-page? res-name)) ^{:key "next"}
-     [:button.ui.button {:on-click #(callback {:page (next-page res-name)})} "next"])
+  [:div
+   [:div.ui.basic.buttons
+    (if (not (first-page? res-name)) ^{:key "prev"}
+      [:button.ui.button {:on-click #(callback {:page (prev-page res-name)})} "prev"])
+    (let [page (page-n 0 res-name)
+          count (session/get (keyword (str res-name "-count")))
+          count (int count)
+          size (session/get (keyword (str res-name "-size")))
+          size (int (or size 5))
+          seq (pages-seq page size count)]
+      (for [item seq] ^{:key item}
+        [:button.ui.button
+         {:class (if (= page item) "active")
+          :on-click #(callback {:page item})} item]))
+    (if (not (last-page? res-name)) ^{:key "next"}
+      [:button.ui.button {:on-click #(callback {:page (next-page res-name)})} "next"])
+    [size-list res-name]
+    ]
    ])
 
 
@@ -288,41 +309,3 @@
 (defn initui []
   (js/setTimeout #(init-ui)  200)
   )
-
-(defn init-tinymce []
-  (.init js/tinymce
-         (js-obj "selector" "div.editable"
-                 "theme" "modern"
-                 "height" 700
-                 ;;"inline" true
-                 "plugins" #js ["advlist autolink lists link image charmap print preview hr anchor pagebreak"
-                                "searchreplace wordcount visualblocks visualchars code fullscreen"
-                                "insertdatetime media nonbreaking save autosave table contextmenu directionality"
-                                "emoticons template paste textcolor colorpicker textpattern imagetools
-                                 codemirror sh4tinymce"]
-                 "toolbar" #js ["insertfile undo redo | styleselect | bold italic |
-                                 alignleft aligncenter alignright alignjustify | save cancel 
-                                 code sh4tinymce"
-                                "bullist numlist outdent indent insert-row-after | table link image
-                                 | print preview media fullpage | forecolor backcolor emoticons fullscreen"]
-                 "codemirror" (js-obj
-                               "indentOnInit" true
-                               "path" "codemirror-4.8"
-                               "config" (js-obj "lineNumbers" true)
-                               )
-                 "save_enablewhendirty" true
-                 "save_onsavecallback" #(save-blogs)
-                 "setup" (fn [editor]
-                           (.addButton editor "cancel"
-                                       (js-obj "text" "Cancel"
-                                               "icon" false
-                                               "onclick" (fn []
-                                                           (println "cancel"))))
-                           (.addButton editor "insert-row-after"
-                                       (js-obj "text" "ARow"
-                                               "icon" false
-                                               "onclick" (fn []
-                                                           (.execCommand editor 'mceTableInsertRowAfter' false editor)
-                                                           )))
-                           )
-                 )))

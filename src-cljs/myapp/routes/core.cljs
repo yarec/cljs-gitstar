@@ -17,7 +17,7 @@
             [myapp.pages.common :as common :refer [header footer about-page]]
 
             ;; func
-            [myapp.func :as func]
+            [myapp.func :as func :refer [up-state!]]
             [myapp.fn.tag :refer [add-tag get-tags]]
             [myapp.fn.star :refer [get-stars]]
             )
@@ -60,7 +60,7 @@
   ;;(.sidebar (js/$ ".ui.labeled.icon.sidebar") "toggle")
   #_(.dropdown (js/$ ".dropdown.tag-list")
                (js-obj "keepOnScreen" true
-                       "onAdd" func/on-filter-add-tag 
+                       "onAdd" func/on-filter-add-tag
                        "onRemove" func/on-filter-rm-tag))
   (func/adjust-footer)
   ;;(.dropdown (js/$ ".dropdown.tag-list") "show")
@@ -76,6 +76,7 @@
         (get-tags (str name "s"))
         )
       (do-page-fn name)
+      (up-state! :save-tags-cb get-stars)
 
       (session/put! :page (keyword name))
       #_(js/setTimeout #(.dropdown (js/$ ".dropdown")
@@ -115,5 +116,3 @@
        (secretary/dispatch! (.-token event))
        ))
     (.setEnabled true)))
-
-

@@ -25,6 +25,7 @@
           :page template
           :dev (env :dev)
           :remote-domain (env :callback-domain)
+          :rest-prefix (env :rest-prefix)
           :csrf-token *anti-forgery-token*
           :servlet-context *app-context*)))
     "text/html; charset=utf-8"))

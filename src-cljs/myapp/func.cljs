@@ -62,7 +62,7 @@
   (session/put! (keyword res-name) (keywordize-keys (get response "data")))
   (session/put! (keyword (str res-name "-count")) (get response "count"))
   (session/put! (keyword (str res-name "-page")) (get response "page"))
-  (session/put! (keyword (str res-name "-size")) (get response "size"))
+  ;;(session/put! (keyword (str res-name "-size")) (get response "size"))
   )
 
 (defn put-res-count [response params]
@@ -146,7 +146,7 @@
         base-name (get names 1)
         token (.get goog.net.cookies "token")
         params (token-param params)
-        page (or (:page params) (cur-page name) 1)
+        page (or (:page params) (cur-page base-name) 1)
         params (assoc params :size (or (:size params) 100)
                       :page page)
         path (str "/" name)]

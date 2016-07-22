@@ -2,9 +2,6 @@
   (:require [reagent.session :as session]
             [ajax.core :refer [GET POST PUT]]
             [myapp.func :as func :refer [up-state! app-state]]
-            [myapp.fn.star :refer [get-stars]]
-            [myapp.fn.blog :refer [get-blogs]]
-            [myapp.fn.coll :refer [get-colls]]
             ))
 
 (defn get-tags [& [type]]
@@ -52,10 +49,8 @@
   (let [tags (.val (js/$ "#tags-value"))
         tags-trim (clojure.string/replace tags #"^," "")
         vec-tags (clojure.string/split tags-trim ",")
-        get-fn (cond (= type "stars") get-stars
-                     (= type "blogs") get-blogs
-                     (= type "colls") get-colls
-                     )]
+        save-tags-cb (:save-tags-cb @app-state)
+        ]
     (let [tag-add (:tags-add @app-state)
           tag-rm (:tags-rm @app-state)
           tags-all (session/get :tags)]
@@ -67,7 +62,7 @@
     (PUT (func/token-rest-url (str type "/" id))
         {:params {:tags vec-tags}
          :format :json
-         :handler #(get-fn)
+         :handler #(save-tags-cb)
          })))
 
 
