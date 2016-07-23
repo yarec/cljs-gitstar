@@ -16,6 +16,8 @@
     [:a.ui.basic {:href "http://github.com/stars" :target "_blank"}
      "github-star"]
     ]
+   [pages "stars" get-stars]
+   [:br]
    (for [item items]
      (let [star (or (:star item) item)] ^{:key (:id item)}
           [:div.item {:style {:padding "2em"}}
@@ -61,25 +63,13 @@
        ]
       )
 
-   #_(
-   [:a.item {:on-click #(get-stars "all")}
-    "All" [:div.ui.label (count (session/get :stars))]]
-   [:a.item {:on-click #(get-stars "")}
-    "Other" [:div.ui.label (count (session/get :stars))]]
-   (for [item items] ^{:key item}
-        [:a.item {:on-click #(get-stars (:name item))}
-         (:name item)
-         [:div.ui.label (:count item)]])
-   )
-
-
    (for [item 
          (into [{:name "all" :count (session/get :stars-all-count) :key "all"}
                 {:name "other" :count (session/get :stars--count) :key "other"}]
            items)
          ] ^{:key item}
     [:div.ui.button.basic.item
-     {:on-click #(get-stars (:name item))
+     {:on-click #(get-stars {:tags (:name item)})
       :style {:margin "2px"
               :position "relative"
               :color "red !important"
@@ -128,6 +118,7 @@
    [:div.ui.grid
     [:div.twelve.wide.column [star-list (session/get :stars)]]
     [:div.four.wide.column [:div.ui.taglist.sticky [right-menu]]]
+    [pages "stars" get-stars]
     ]
    ])
 

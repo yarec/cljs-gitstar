@@ -11,7 +11,7 @@
             [goog.net.cookies :as cks]
             [yarec.semantic :as sem]
             [clojure.walk :refer [keywordize-keys]]
-            [myapp.pages.common :as common :refer [footer]]
+            [myapp.pages.common :as common :refer [footer sync-stars]]
             [myapp.routes.core :as route :refer [page]]
             [myapp.func :as func]
 
@@ -57,7 +57,7 @@
           [:a.ui.item {:on-click syn-star} github-name]
           [:a.ui.item {:on-click func/github-authorize } "Login"]
           )
-          [:a.ui.item {:on-click #(print (:name (first (session/get :stars)))) } "test"]
+          [:a.ui.item {:on-click #(sync-stars) } "syncstar"]
         ] ] ] ]))
 
 (defn mount-components []
